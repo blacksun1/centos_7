@@ -1,6 +1,35 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
+require 'yaml' # STEP ONE, REQUIRE YAML!
+configFile = File.open('workstation.config', 'r')
+workstation_config = YAML.load(configFile.read)
+
+# printf YAML.load(config)
+# printf YAML.dump("foo")
+# config = {
+#     'pasword' => 'BazStation11',
+#     'rootPassword' => 'BazStation11'
+#   }
+# printf config['pasword']
+# printf(config.to_yaml)
+
+# KERNEL UPGRADE
+# https://www.vagrantup.com/docs/vmware/kernel-upgrade.html
+$fix_vmware_tools_script = <<SCRIPT
+sed -i.bak 's/answer AUTO_KMODS_ENABLED_ANSWER no/answer AUTO_KMODS_ENABLED_ANSWER yes/g' /etc/vmware-tools/locations
+sed -i 's/answer AUTO_KMODS_ENABLED no/answer AUTO_KMODS_ENABLED yes/g' /etc/vmware-tools/locations
+SCRIPT
+
+$set_passwords = <<SCRIPT
+  echo Setting passwords
+  echo "p1 = $1"
+  echo "p2 = $2"
+  echo "vagrant:$1" | chpasswd
+  echo "root:$2" | chpasswd
+  echo done?
+SCRIPT
+
 # All Vagrant configuration is done below. The "2" in Vagrant.configure
 # configures the configuration version (we support older styles for
 # backwards compatibility). Please don't change it unless you know what
@@ -43,20 +72,22 @@ Vagrant.configure(2) do |config|
   # backing providers for Vagrant. These expose provider-specific options.
   # Example for VirtualBox:
   #
+
+  config.vm.provider "vmware_fusion" do |vw|
+    vw.gui = true
+    vw.vmx["memsize"] = "1024"
+    vw.vmx["numvcpus"] = "2"
+    vw.vmx["enable3d"] = "true"
+  end
+
   config.vm.provider "virtualbox" do |vb|
     # Display the VirtualBox GUI when booting the machine
-    # vb.gui = true
+    vb.gui = true
 
     # Customize the amount of memory on the VM:
     vb.memory = "1024"
   end
 
-  config.vm.provider "vmware_fusion" do |vw|
-    vw.vmx["memsize"] = "1024"
-    vw.vmx["numvcpus"] = "2"
-  end
-
-  #
   # View the documentation for the provider you are using for more
   # information on available options.
 
@@ -74,6 +105,10 @@ Vagrant.configure(2) do |config|
   #   sudo apt-get update
   #   sudo apt-get install -y apache2
   # SHELL
-  config.vm.provision "shell", privileged: false, path: "scripts/bootstrap.sh"
-  config.vm.provision "shell", privileged: false, path: "scripts/apps/vim.sh"
+  # config.vm.provision "VagrantPassword", type: "shell", privileged: true, inline: "echo vagrant:#{workstation_config['pasword']} | chpasswd"
+  config.vm.provision "SetPasswords", type: "shell", privileged: true, inline: $set_passwords, args: [workstation_config['password'], workstation_config['rootPassword']]
+  config.vm.provision "Bootstrap", type: "shell", privileged: false, path: "scripts/bootstrap.sh"
+  config.vm.provision "apps/vim", type: "shell", privileged: false, path: "scripts/apps/vim.sh"
+  config.vm.provision "apps/gui", type: "shell", privileged: false, path: "scripts/apps/gui.sh"
+  config.vm.provision "fix VMWare tools", type: "shell", privileged: true, inline: $fix_vmware_tools_script
 end
