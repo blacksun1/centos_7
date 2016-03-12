@@ -7,10 +7,10 @@ function installGuiBasics {
 	# yum groupinstall 'GNOME Desktop Environment'
 }
 
-function installCinamonGui {
-	echo 'Installing Cinamon'
+function installCinamonGUI {
+	echo 'Installing Cinnamon'
 	sudo yum --enablerepo=epel -y install cinnamon*
-	echo "Maing Cinamon the default Window Manager"
+	echo "Making Cinnamon the default Window Manager"
 	echo "exec /usr/bin/cinnamon-session" >> ~/.xinitrc
 }
 
@@ -23,7 +23,12 @@ function reinstallOpenVMWareTools {
 	sudo yum install -y open-vm-tools open-vm-tools-desktop open-vm-tools-devel
 }
 
+function setTargetToGraphical {
+	sudo systemctl set-default graphical.target
+}
+
 # installGuiBasics
 installServerWithGUI
 reinstallOpenVMWareTools
-installCinamonGui
+installCinamonGUI
+setTargetToGraphical

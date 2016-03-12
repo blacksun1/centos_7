@@ -1,0 +1,1 @@
+curl -L git.io/sublimetext | sh
