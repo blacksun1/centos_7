@@ -38,14 +38,36 @@ Vagrant.configure(2) do |config|
   end
 
   config.vm.provider "virtualbox" do |vb|
-    vb.gui = true
-    vb.memory = "#{workstation_config['memory']}"
-    vb.cpus = "#{workstation_config['cpus']}"
-
     # Video card memory
     vb.customize ['modifyvm', :id, '--vram', '128']
-    vb.customize ['modifyvm', :id, '--monitorcount', "#{workstation_config['monitors']}"]
-    vb.customize ['modifyvm', :id, '--accelerate3d', "#{workstation_config['enable3d'] ? 'on' : 'off'}"]
+    vb.customize ['modifyvm', :id, '--monitorcount', workstation_config['monitors']]
+    vb.customize ['modifyvm', :id, '--accelerate3d', workstation_config['enable3d'] ? 'on' : 'off']
+
+    # Name
+    vb.name = workstation_config['vmName']
+
+    # Customize the amount of memory on the VM: This is customised for a
+    # GUI workstation
+    vb.gui = true
+    vb.customize ["modifyvm", :id, "--clipboard", "bidirectional"]
+    vb.customize ["modifyvm", :id, "--draganddrop", "bidirectional"] # "hosttoguest" | "bidirectional"
+    vb.memory = workstation_config['memory']
+    vb.cpus = workstation_config['cpus']
+
+    # Required for using more than 1 cpu. Turn it off if just using one.
+    vb.customize ["modifyvm", :id, "--ioapic", workstation_config['cpus'] > 1 ? "on" : "off"]
+    vb.customize ["modifyvm", :id, "--vram", "128"]
+    vb.customize ["modifyvm", :id, "--monitorcount", "#{workstation_config['monitors']}"]
+    # Acceleration does not work on Linux
+    vb.customize ["modifyvm", :id, "--accelerate2dvideo", "off"]
+    # vb.customize ["modifyvm", :id, "--accelerate3d", "off"]
+    vb.customize ['modifyvm', :id, '--accelerate3d', workstation_config['enable3d'] ? 'on' : 'off']
+    if RUBY_PLATFORM =~ /darwin/
+      vb.customize ["modifyvm", :id, '--audio', 'coreaudio', '--audiocontroller', 'hda'] # choices: hda sb16 ac97
+    elsif RUBY_PLATFORM =~ /mingw|mswin|bccwin|cygwin|emx/
+      vb.customize ["modifyvm", :id, '--audio', 'dsound', '--audiocontroller', 'ac97']
+    end
+
   end
 
   config.vm.provision "SetPasswordVagrant", type: "shell", privileged: true, inline: $set_passwords, args: ["vagrant", workstation_config['password']]

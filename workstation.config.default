@@ -5,3 +5,4 @@ memory: 2048
 cpus: 1
 monitors: 1
 enable3d: true
+vmName: Centos7
